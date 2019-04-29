@@ -1,0 +1,9 @@
+*.zip
+*.out
+*.txt
+test*
+
+.vscode/*
+
+
+*.sh
