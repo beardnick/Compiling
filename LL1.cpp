@@ -26,9 +26,10 @@ bool isT(char c)
     return !isNT(c) || c == EP;
 }
 
-void merge_set(set<char> &s1, set<char> s2)
+set<char> merge_set(set<char> s1, set<char> s2)
 {
     s1.insert(s2.begin(), s2.end());
+    return s1;
 }
 
 void display(set<char> s)
@@ -51,6 +52,7 @@ void display(vector<string> s)
 
 set<char> first(string key)
 {
+    cout<<"FIRST("<<key<<"):"<<endl;
     // cout<<"key:"<<key<<endl;
     set<char> res;
     if (key.length() < 1)
@@ -83,7 +85,7 @@ set<char> first(string key)
             // cout<<"first of key[1:]"<<endl;
             // display(tmp);
             // res.insert(tmp.begin(), tmp.end());
-            merge_set(res, tmp);
+            res = merge_set(res, tmp);
             if (!tmp.count(EP))
             {
                 res.erase(EP);
@@ -111,6 +113,9 @@ vector<string> whoContains(char key)
 bool canBeNull(string key)
 {
     // cout << "can be null" << endl;
+    if(key[0] == EP){
+        return true;
+    }
     for (auto var1 : key)
     {
         if (isT(var1))
@@ -140,13 +145,13 @@ bool canBeNull(string key)
 
 set<char> follow(char key)
 {
-    // cout<<"follow("<<key<<")"<<endl;
+    cout<<"follow("<<key<<"):"<<endl;
     set<char> res;
     if (isT(key))
     {
         return res;
     }
-    if (key == 'S')
+    if (key == 'S' || key == 'E')
     {
         // cout << "func 3" << endl;
         res.insert('#');
@@ -172,15 +177,30 @@ set<char> follow(char key)
             for (auto e : rightSyntax[var])
             {
                 if(e[0] != key){
-                merge_set(res, follow(e[0]));
+                res = merge_set(res, follow(e[0]));
                 }
             }
         }
         if(beta.length() > 0)
         {
             // cout << "func 2" << endl;
-            merge_set(res, first(beta));
+            res = merge_set(res, first(beta));
+            res.erase(EP);
         }
+    }
+    return res;
+}
+
+set<char> select(char left, string right){
+    cout<<left<<" -> "<<right<<":"<<endl;
+    set<char> res;
+    if(canBeNull(right)){
+        cout<<right<<" can be null"<<endl;
+        set<char> tmp = follow(left);
+        tmp.erase(EP);
+        res = merge_set(first(right),tmp);
+    }else{
+        res = first(right);
     }
     return res;
 }
@@ -222,34 +242,21 @@ int main(int argc, char const *argv[])
         // cout << endl;
     }
     in.close();
-    // test first function
-    // cout<<"first ED:"<<endl;
-    // display(first("ED"));
-    // cout<<"first S:"<<endl;
-    // display(first("S"));
-    // cout<<"first B:"<<endl;
-    // display(first("B"));
-    // cout<<"first C:"<<endl;
-    // display(first("C"));
-    // cout<<"first A:"<<endl;
-    // display(first("A"));
-    // cout<<"first E:"<<endl;
-    // display(first("E"));
-    // cout<<"first D"<<endl;
-    // display(first("D"));
-    // cout<<"first EB"<<endl;
-    // display(first("EB"));
-
-    // cout<<"who contains B?"<<endl;
-    // display(whoContains('B'));
-
-    // cout<<"is ED can be NULL ?"<<endl;
-    // cout<<canBeNull("ED")<<endl;
-    cout << "follow S" << endl;
-    display(follow('S'));
-    cout << "follow B" << endl;
-    display(follow('B'));
-    cout << "follow A" << endl;
-    display(follow('A'));
+    map<string,vector<string> >::iterator iter ;
+    // // 所有first集
+    // for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
+    //     display(first(iter->first));
+    // }
+    // // 所有follow集
+    // for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
+    //     display(follow(iter->first[0]));
+    // }
+    // 所有select集
+    for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
+        for(auto var : iter->second)
+        {
+           display(select(iter->first[0], var));
+        }
+    }
     return 0;
 }
