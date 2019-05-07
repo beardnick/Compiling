@@ -12,7 +12,7 @@
 using namespace std;
 
 // 定义O为空
-#define EP 'O'
+#define EP '`'
 
 //文法存储的数据结构，O表示空
 map<string, vector<string>> syntax;
@@ -259,9 +259,9 @@ bool isValid(string target)
     }
     s.push('#');
     s.push('E');
-    printf("%-10s", toString(s).c_str());
-    printf("%10s", toString(q).c_str());
-    cout<<endl;
+    printf("%-20s", toString(s).c_str());
+    printf("%20s", toString(q).c_str());
+    cout << endl;
     while (s.top() != '#' || q.front() != '#')
     {
         if (s.top() != q.front())
@@ -290,11 +290,60 @@ bool isValid(string target)
             s.pop();
             q.pop();
         }
-        printf("%-10s", toString(s).c_str());
-        printf("%10s", toString(q).c_str());
+        printf("%-20s", toString(s).c_str());
+        printf("%20s", toString(q).c_str());
         cout << endl;
     }
     return true;
+}
+
+bool creatPredictTable(){
+    map<string, vector<string>>::iterator iter;
+    for (iter = syntax.begin(); iter != syntax.end(); iter++)
+    {
+        char left = iter->first[0];
+        for (auto var : iter->second)
+        {
+            //    display(select(iter->first[0], var));
+            set<char> selectResult = select(left, var);
+            for (auto i : selectResult)
+            {
+                if(predictTable.count(left) != 0 && predictTable[left].count(i) != 0){
+                    return false;
+                }
+                predictTable[left][i] = var;
+            }
+        }
+    }
+    return true;
+}
+
+void printPredictTable(){
+    map<string, vector<string>>::iterator iter;
+    printf("%-10s", " ");
+    for (auto i : terminal)
+    {
+        printf("%-10c", i);
+    }
+    cout << endl;
+    for (iter = syntax.begin(); iter != syntax.end(); iter++)
+    {
+        //    display(select(iter->first[0], var));
+        printf("%-10c", iter->first[0]);
+        for (auto i : terminal)
+        {
+            if (predictTable[iter->first[0]].count(i) != 0)
+            {
+                printf("%-10s", predictTable[iter->first[0]][i].c_str());
+                //    cout<<predictTable[iter->first[0]][i]<<"\t";
+            }
+            else
+            {
+                printf("%-10s", " ");
+            }
+        }
+        cout << endl;
+    }
 }
 
 int main(int argc, char const *argv[])
@@ -361,44 +410,28 @@ int main(int argc, char const *argv[])
     //        display(select(iter->first[0], var));
     //     }
     // }
-
-    for (iter = syntax.begin(); iter != syntax.end(); iter++)
-    {
-        for (auto var : iter->second)
-        {
-            //    display(select(iter->first[0], var));
-            set<char> selectResult = select(iter->first[0], var);
-            for (auto i : selectResult)
-            {
-                predictTable[iter->first[0]][i] = var;
-            }
-        }
+    if(creatPredictTable()){
+        cout<<"该文法是LL(1)文法"<<endl;
+    }else{
+        cout<<"该文法不是LL(1)文法"<<endl;
+        return 1;
     }
-
-    printf("%-10s", " ");
-    for (auto i : terminal)
+    printPredictTable();
+    // isLL1();
+    // isValid("i+i*i");
+    // string test = "(i+i*i)*i+(i+i)";
+    string test = "(i+i*i)*i+((i+i)";
+    // string test = "(i+i*i)(*i+(i+i)";
+    // string test = "(i+i*i)(*i+-(i+i)";
+    if (isValid(test))
     {
-        printf("%-10c", i);
+        cout <<test 
+             << "是该文法的句子" << endl;
     }
-    cout << endl;
-    for (iter = syntax.begin(); iter != syntax.end(); iter++)
+    else
     {
-        //    display(select(iter->first[0], var));
-        printf("%-10c", iter->first[0]);
-        for (auto i : terminal)
-        {
-            if (predictTable[iter->first[0]].count(i) != 0)
-            {
-                printf("%-10s", predictTable[iter->first[0]][i].c_str());
-                //    cout<<predictTable[iter->first[0]][i]<<"\t";
-            }
-            else
-            {
-                printf("%-10s", " ");
-            }
-        }
-        cout << endl;
+        cout << test
+             << "不是该文法的句子" << endl;
     }
-    isValid("i+i*i");
     return 0;
 }
