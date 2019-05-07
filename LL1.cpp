@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <cstdio>
 
 using namespace std;
 
@@ -15,6 +16,10 @@ using namespace std;
 map<string, vector<string>> syntax;
 // 生成式右部对应的左部的映射
 map<string, vector<string>> rightSyntax;
+//预测分析表
+map<char,map<char,string> > predictTable;
+//终结符表
+set<char>terminal;
 
 bool isNT(char c)
 {
@@ -226,13 +231,13 @@ int main(int argc, char const *argv[])
         }
         syntax[key].push_back(value);
         rightSyntax[value].push_back(key);
-        cout << "left syntax:" << endl;
-        cout << key << ":";
-        for (auto var : syntax[key])
-        {
-            cout << var << " ";
-        }
-        cout << endl;
+        // cout << "left syntax:" << endl;
+        // cout << key << ":";
+        // for (auto var : syntax[key])
+        // {
+        //     cout << var << " ";
+        // }
+        // cout << endl;
         // cout<<"right syntax:"<<endl;
         // cout << value << ":";
         // for (auto var : rightSyntax[value])
@@ -240,23 +245,67 @@ int main(int argc, char const *argv[])
         //     cout << var << " ";
         // }
         // cout << endl;
+        for(auto var : value)
+        {
+            if(isT(var)){
+                terminal.insert(var); 
+            }
+        }
     }
     in.close();
+    terminal.insert('#');
+    terminal.insert(EP);
     map<string,vector<string> >::iterator iter ;
     // // 所有first集
     // for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
     //     display(first(iter->first));
     // }
+
     // // 所有follow集
     // for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
     //     display(follow(iter->first[0]));
     // }
+
     // 所有select集
+    // for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
+    //     for(auto var : iter->second)
+    //     {
+    //        display(select(iter->first[0], var));
+    //     }
+    // }
+
     for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
         for(auto var : iter->second)
         {
-           display(select(iter->first[0], var));
+        //    display(select(iter->first[0], var));
+        set<char> selectResult = select(iter->first[0], var);
+        for(auto i : selectResult)
+        {
+           predictTable[iter->first[0]][i] = var; 
+        }
         }
     }
+
+        printf("%-10s", " ");
+        for(auto i : terminal)
+        {
+            printf("%-10c", i);
+           }
+           cout<<endl;
+    for(iter = syntax.begin() ; iter != syntax.end() ; iter ++){
+        //    display(select(iter->first[0], var));
+            printf("%-10c", iter->first[0]);
+        for(auto i : terminal)
+        {
+           if(predictTable[iter->first[0]].count(i) != 0){
+               printf("%-10s",predictTable[iter->first[0]][i].c_str());
+            //    cout<<predictTable[iter->first[0]][i]<<"\t";
+           } else{
+               printf("%-10s", " ");
+           }
+        }
+        cout<<endl;
+    }
+
     return 0;
 }
