@@ -13,6 +13,8 @@ using namespace std;
 
 // 定义O为空
 #define EP '`'
+// 文法识别符号
+#define S 'S'
 
 //文法存储的数据结构，O表示空
 map<string, vector<string>> syntax;
@@ -163,6 +165,7 @@ bool canBeNull(string key)
         bool containsEP = false;
         stringstream ss;
         ss << var1;
+
         for (auto var2 : syntax[ss.str()])
         {
             //    cout<<"var2:"<<var2;
@@ -189,9 +192,9 @@ set<char> follow(char key)
     {
         return res;
     }
-    if (key == 'S' || key == 'E')
+    if (key == S)
     {
-        // cout << "func 3" << endl;
+        // cout << "func 1" << endl;
         res.insert('#');
     }
     vector<string> targets = whoContains(key);
@@ -258,7 +261,7 @@ bool isValid(string target)
         q.push(var);
     }
     s.push('#');
-    s.push('E');
+    s.push(S);
     printf("%-20s", toString(s).c_str());
     printf("%20s", toString(q).c_str());
     cout << endl;
@@ -297,7 +300,8 @@ bool isValid(string target)
     return true;
 }
 
-bool creatPredictTable(){
+bool creatPredictTable()
+{
     map<string, vector<string>>::iterator iter;
     for (iter = syntax.begin(); iter != syntax.end(); iter++)
     {
@@ -308,7 +312,8 @@ bool creatPredictTable(){
             set<char> selectResult = select(left, var);
             for (auto i : selectResult)
             {
-                if(predictTable.count(left) != 0 && predictTable[left].count(i) != 0){
+                if (predictTable.count(left) != 0 && predictTable[left].count(i) != 0)
+                {
                     return false;
                 }
                 predictTable[left][i] = var;
@@ -318,7 +323,8 @@ bool creatPredictTable(){
     return true;
 }
 
-void printPredictTable(){
+void printPredictTable()
+{
     map<string, vector<string>>::iterator iter;
     printf("%-10s", " ");
     for (auto i : terminal)
@@ -410,22 +416,26 @@ int main(int argc, char const *argv[])
     //        display(select(iter->first[0], var));
     //     }
     // }
-    if(creatPredictTable()){
-        cout<<"该文法是LL(1)文法"<<endl;
-    }else{
-        cout<<"该文法不是LL(1)文法"<<endl;
+    if (creatPredictTable())
+    {
+        cout << "该文法是LL(1)文法" << endl;
+    }
+    else
+    {
+        cout << "该文法不是LL(1)文法" << endl;
         return 1;
     }
     printPredictTable();
     // isLL1();
     // isValid("i+i*i");
     // string test = "(i+i*i)*i+(i+i)";
-    string test = "(i+i*i)*i+((i+i)";
+    string test = "(";
+    // string test = "(i+i*i)*i+((i+i)";
     // string test = "(i+i*i)(*i+(i+i)";
     // string test = "(i+i*i)(*i+-(i+i)";
     if (isValid(test))
     {
-        cout <<test 
+        cout << test
              << "是该文法的句子" << endl;
     }
     else
