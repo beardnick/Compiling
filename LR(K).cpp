@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <stack>
 #include <queue>
+#include <utility>
 
 using namespace std;
 
@@ -23,13 +24,21 @@ using namespace std;
 //文法存储的数据结构，EP表示空
 map<string, vector<string>> syntax;
 //项集规范族的节点表
-set<map<string, vector<string>>> nodeSet;
+vector<map<string, vector<string>>> nodeSet;
 // 生成式右部对应的左部的映射
 map<string, vector<string>> rightSyntax;
 //预测分析表
 map<char, map<char, string>> predictTable;
 //终结符表
 set<char> terminal;
+//产生式表
+vector<pair<string, string>> syntaxVector;
+
+//分析表
+map<string, map<string, string>> analyzeTable;
+
+// // 最终的分析表的GOTO部分
+// map<string, map<string, string> > gotoTable;
 
 bool isNT(char c)
 {
@@ -56,12 +65,22 @@ string getNext(string value)
 
 void displayNode(map<string, vector<string>> node)
 {
-    for (auto pair : node)
+    for (auto mpair : node)
     {
-        for (auto right : pair.second)
+        for (auto right : mpair.second)
         {
-            cout << pair.first << " -> " << right << endl;
+            cout << mpair.first << " -> " << right << endl;
         }
+    }
+}
+
+void displayNodeSet()
+{
+    int cnt = 0;
+    for (auto var : nodeSet)
+    {
+        cout << "I" << cnt++ << ":" << endl;
+        displayNode(var);
     }
 }
 
@@ -106,15 +125,15 @@ map<string, vector<string>> _closure(map<string, vector<string>> node)
 map<string, vector<string>> _goto(map<string, vector<string>> node, string key)
 {
     map<string, vector<string>> res;
-    for (auto pair : node)
+    for (auto mpair : node)
     {
-        for (auto value : pair.second)
+        for (auto value : mpair.second)
         {
             string next = getNext(value);
             if (next == key)
             {
                 value = shift(value);
-                res[pair.first].push_back(value);
+                res[mpair.first].push_back(value);
             }
         }
     }
@@ -125,32 +144,50 @@ map<string, vector<string>> _goto(map<string, vector<string>> node, string key)
 
 bool visited(map<string, vector<string>> node)
 {
-    for(auto ni : nodeSet)
+    for (auto ni : nodeSet)
     {
         // cout<<"ni:"<<endl;
         // displayNode(ni);
         bool nodeEqual = true;
-        for(auto pair : ni)
+        for (auto mpair : ni)
         {
-            if(  node.count(pair.first) == 0 ||
-                   node[pair.first] != pair.second ){
-                       nodeEqual = false;
-                       break;
-                   }
+            if (node.count(mpair.first) == 0 ||
+                node[mpair.first] != mpair.second)
+            {
+                nodeEqual = false;
+                break;
+            }
         }
-        for(auto pair : node)
+        for (auto mpair : node)
         {
-            if(  ni.count(pair.first) == 0 ||
-                   ni[pair.first] != pair.second ){
-                       nodeEqual = false;
-                       break;
-                   }
+            if (ni.count(mpair.first) == 0 ||
+                ni[mpair.first] != mpair.second)
+            {
+                nodeEqual = false;
+                break;
+            }
         }
-        if(nodeEqual){
+        if (nodeEqual)
+        {
             return true;
         }
     }
     return false;
+}
+
+int findGen(string first, string second)
+{
+    // cout<<"find "<<first<<" ->"<<second<<endl;
+    int cnt = 0;
+    for (auto var : syntaxVector)
+    {
+        if (var.first == first && var.second == second)
+        {
+            return cnt;
+        }
+        cnt++;
+    }
+    return -1;
 }
 
 void createGraph()
@@ -159,33 +196,58 @@ void createGraph()
     initNode["S"].push_back(".E");
     map<string, vector<string>> node0;
     node0 = _closure(initNode);
-    nodeSet.insert(node0);
+    nodeSet.push_back(node0);
     queue<map<string, vector<string>>> q;
     q.push(node0);
     int cnt = 0;
     while (!q.empty())
     {
-        cnt ++;
+        cnt++;
         map<string, vector<string>> currentNode = q.front();
         q.pop();
-        cout<<"I"<<cnt - 1<<":"<<endl;
-        displayNode(currentNode);
-        for (auto pair : currentNode)
+        // cout<<"I"<<cnt - 1<<":"<<endl;
+        // displayNode(currentNode);
+        for (auto mpair : currentNode)
         {
-            for (auto value : pair.second)
+            for (auto value : mpair.second)
             {
                 map<string, vector<string>> newNode;
                 string next = getNext(value);
                 if (next.length() > 0)
                 {
                     newNode = _goto(currentNode, next);
-                }else{
+                }
+                else
+                {
+                    if(value == "E."){
+                        analyzeTable["S" + (cnt - 1)]["#"] = "acc";
+                            printf("[S%d][#] = acc\n", cnt - 1);
+                            break;
+                    }
+                    for (auto t : terminal)
+                    {
+                        if (isT(t))
+                        {
+                            printf("[S%d][%c] = r%d\n", cnt - 1, t, findGen(mpair.first, value.substr(0, value.length() - 1)));
+                            analyzeTable["S" + (cnt - 1)][t + ""] = "r" + findGen(mpair.first, value.substr(0, value.length() - 1));
+                        }
+                    }
                     break;
                 }
                 if (!visited(newNode))
                 {
                     q.push(newNode);
-                    nodeSet.insert(newNode);
+                    nodeSet.push_back(newNode);
+                    if (isT(next[0]))
+                    {
+                        printf("[S%d][%s] = S%d\n", cnt - 1, next.c_str(), nodeSet.size() - 1);
+                        analyzeTable["S" + (cnt - 1)][next] = "S" + (nodeSet.size() - 3);
+                    }
+                    else
+                    {
+                        printf("[S%d][%s] = %d\n", cnt - 1, next.c_str(), nodeSet.size() - 1);
+                        analyzeTable["S" + (cnt - 1)][next] = "" + (nodeSet.size() - 1);
+                    }
                 }
             }
         }
@@ -237,10 +299,21 @@ int main(int argc, char const *argv[])
             }
         }
     }
+    terminal.insert('#');
     map<string, vector<string>> node;
     map<string, vector<string>> node1;
-
-//   test displayNode
+    for (auto mpair : syntax)
+    {
+        for (auto value : mpair.second)
+        {
+            syntaxVector.push_back(pair<string, string>(mpair.first, value));
+        }
+    }
+    for(auto var : syntaxVector)
+    {
+       cout<<var.first<<" -> "<<var.second<<endl; 
+    }
+    //   test displayNode
 
     // node["S"].push_back(".E");
     // displayNode(_closure(node));
@@ -253,7 +326,7 @@ int main(int argc, char const *argv[])
     // node["E"].push_back(".bB");
     // _goto(node, "a");
 
-// test visited
+    // test visited
 
     // node["S"].push_back(".E");
     // node["A"].push_back("C.a");
@@ -264,5 +337,6 @@ int main(int argc, char const *argv[])
     // cout<<visited(node)<<endl;
     // cout<<visited(node1)<<endl;
     createGraph();
+    displayNodeSet();
     return 0;
 }
