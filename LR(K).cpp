@@ -40,6 +40,13 @@ map<string, map<string, string>> analyzeTable;
 // // 最终的分析表的GOTO部分
 // map<string, map<string, string> > gotoTable;
 
+string charToString(char c)
+{
+    stringstream ss;
+    ss << c;
+    return ss.str();
+}
+
 bool isNT(char c)
 {
     return c >= 'A' && c <= 'Z';
@@ -142,12 +149,14 @@ map<string, vector<string>> _goto(map<string, vector<string>> node, string key)
     return res;
 }
 
-bool visited(map<string, vector<string>> node)
+int visited(map<string, vector<string>> node)
 {
+    int cnt = -1;
     for (auto ni : nodeSet)
     {
         // cout<<"ni:"<<endl;
         // displayNode(ni);
+        cnt++;
         bool nodeEqual = true;
         for (auto mpair : ni)
         {
@@ -169,10 +178,10 @@ bool visited(map<string, vector<string>> node)
         }
         if (nodeEqual)
         {
-            return true;
+            return cnt;
         }
     }
-    return false;
+    return -1;
 }
 
 int findGen(string first, string second)
@@ -205,8 +214,8 @@ void createGraph()
         cnt++;
         map<string, vector<string>> currentNode = q.front();
         q.pop();
-        // cout<<"I"<<cnt - 1<<":"<<endl;
-        // displayNode(currentNode);
+        cout << "I" << cnt - 1 << ":" << endl;
+        displayNode(currentNode);
         for (auto mpair : currentNode)
         {
             for (auto value : mpair.second)
@@ -219,37 +228,154 @@ void createGraph()
                 }
                 else
                 {
-                    if(value == "E."){
-                        analyzeTable["S" + (cnt - 1)]["#"] = "acc";
-                            printf("[S%d][#] = acc\n", cnt - 1);
-                            break;
+                    if (value == "E.")
+                    {
+                        analyzeTable["S" + to_string(cnt - 1)]["#"] = "acc";
+                        printf("[S%d][#] = acc\n", cnt - 1);
+                        break;
                     }
                     for (auto t : terminal)
                     {
                         if (isT(t))
                         {
                             printf("[S%d][%c] = r%d\n", cnt - 1, t, findGen(mpair.first, value.substr(0, value.length() - 1)));
-                            analyzeTable["S" + (cnt - 1)][t + ""] = "r" + findGen(mpair.first, value.substr(0, value.length() - 1));
+                            analyzeTable["S" + to_string(cnt - 1)][charToString(t)] = "r" + to_string(findGen(mpair.first, value.substr(0, value.length() - 1)));
                         }
                     }
                     break;
                 }
-                if (!visited(newNode))
+                int nodeIndex = visited(newNode);
+                if (nodeIndex == -1)
                 {
                     q.push(newNode);
                     nodeSet.push_back(newNode);
                     if (isT(next[0]))
                     {
                         printf("[S%d][%s] = S%d\n", cnt - 1, next.c_str(), nodeSet.size() - 1);
-                        analyzeTable["S" + (cnt - 1)][next] = "S" + (nodeSet.size() - 3);
+                        analyzeTable["S" + to_string(cnt - 1)][next] = "S" + to_string(nodeSet.size() - 1);
                     }
                     else
                     {
                         printf("[S%d][%s] = %d\n", cnt - 1, next.c_str(), nodeSet.size() - 1);
-                        analyzeTable["S" + (cnt - 1)][next] = "" + (nodeSet.size() - 1);
+                        analyzeTable["S" + to_string(cnt - 1)][next] = to_string(nodeSet.size() - 1);
+                    }
+                }
+                else
+                {
+                    if (isT(next[0]))
+                    {
+                        printf("[S%d][%s] = S%d\n", cnt - 1, next.c_str(), nodeIndex);
+                        analyzeTable["S" + to_string(cnt - 1)][next] = "S" + to_string(nodeIndex);
+                    }
+                    else
+                    {
+                        printf("[S%d][%s] = %d\n", cnt - 1, next.c_str(), nodeSet.size() - 1);
+                        analyzeTable["S" + to_string(cnt - 1)][next] = to_string(nodeIndex);
                     }
                 }
             }
+        }
+    }
+}
+
+string toString(stack<string> s, string split)
+{
+    // cout<<"stack.toString"<<endl;
+    stack<string> s1;
+    string res;
+    while (!s.empty())
+    {
+        s1.push(s.top());
+        s.pop();
+    }
+    if (!s1.empty())
+    {
+        res += s1.top();
+        s1.pop();
+    }
+    while (!s1.empty())
+    {
+        res += (split + s1.top());
+        s1.pop();
+    }
+    return res;
+}
+
+string toStringReverse(stack<string> s, string split)
+{
+    string res;
+    if (!s.empty())
+    {
+        res += s.top();
+        s.pop();
+    }
+    while (!s.empty())
+    {
+        res += (split + s.top());
+        s.pop();
+    }
+    return res;
+}
+
+bool isValid(string target)
+{
+    stack<string> state, sign, input;
+    state.push("0");
+    sign.push("#");
+    input.push("#");
+    for (int i = target.length() - 1; i >= 0; i--)
+    {
+        input.push(charToString(target[i]));
+    }
+    while (true)
+    {
+        printf("%-20s", toString(state, " ").c_str());
+        printf("%-20s", toString(sign, "").c_str());
+        printf("%20s\n", toStringReverse(input, "").c_str());
+        if (analyzeTable.count("S" + state.top()) == 0 ||
+            analyzeTable["S" + state.top()].count(input.top()) == 0)
+        {
+            return false;
+        }
+        string res = analyzeTable["S" + state.top()][input.top()];
+        if (res[0] == 'S')
+        {
+            state.push(res.substr(1, res.length() - 1));
+            sign.push(input.top());
+            input.pop();
+        }
+        else if (res[0] == 'r')
+        {
+            pair<string, string> mpair = syntaxVector[stoi(res.substr(1, res.length() - 1))];
+            for (auto var : mpair.second)
+            {
+                state.pop();
+                sign.pop();
+            }
+            input.push(mpair.first);
+        }
+        else if (res[0] >= '0' && res[0] <= '9')
+        {
+            state.push(res);
+            sign.push(input.top());
+            input.pop();
+        }
+        else if (res == "acc")
+        {
+            return true;
+        }
+    }
+}
+
+void displayAnalyzeTable()
+{
+    // map<string, map<string, string>> analyzeTable;
+    for (auto pair1 : analyzeTable)
+    {
+        cout << pair1.first + ":" << endl;
+        for (auto pair2 : pair1.second)
+        {
+            cout << pair2.first + ":" + pair2.second << endl;
         }
     }
 }
@@ -263,8 +389,6 @@ int main(int argc, char const *argv[])
         return 1;
     }
     int cnt = 0;
-    // 构建扩展文法
-    syntax["S"].push_back("E");
     // 读取文件内容，生成文法
     while (!in.eof())
     {
@@ -309,9 +433,9 @@ int main(int argc, char const *argv[])
             syntaxVector.push_back(pair<string, string>(mpair.first, value));
         }
     }
-    for(auto var : syntaxVector)
+    for (auto var : syntaxVector)
     {
-       cout<<var.first<<" -> "<<var.second<<endl; 
+        cout << var.first << " -> " << var.second << endl;
     }
     //   test displayNode
 
@@ -337,6 +461,16 @@ int main(int argc, char const *argv[])
     // cout<<visited(node)<<endl;
     // cout<<visited(node1)<<endl;
     createGraph();
-    displayNodeSet();
+    // displayNodeSet();
+    string target = "bccd";
+    if (isValid(target))
+    {
+        cout << target + "是该文法的句子" << endl;
+    }
+    else
+    {
+        cout << target + "不是该文法的句子" << endl;
+    }
+    // displayAnalyzeTable();
     return 0;
 }
