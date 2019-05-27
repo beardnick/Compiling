@@ -333,9 +333,13 @@ bool isValid(string target)
         printf("%-20s", toString(sign, "").c_str());
         printf("%20s\n", toStringReverse(input, "").c_str());
         if (analyzeTable.count("S" + state.top()) == 0 ||
-            analyzeTable["S" + state.top()].count(input.top()) == 0)
+            analyzeTable["S" + state.top()].count(input.top()) == 0 )
         {
+            if(analyzeTable["S" + state.top()].count("`") != 0){
+                input.push("`");
+            }else{
             return false;
+            }
         }
         string res = analyzeTable["S" + state.top()][input.top()];
         if (res[0] == 'S')
@@ -462,7 +466,12 @@ int main(int argc, char const *argv[])
     // cout<<visited(node1)<<endl;
     createGraph();
     // displayNodeSet();
-    string target = "bccd";
+    string target = "bccccd";
+    // string target = "aed";
+    // string target = "abab";
+    // string target = "(";
+    // string target = "(i+i*i)*i+(i+i)";
+    // string target = "(i+i)";
     if (isValid(target))
     {
         cout << target + "是该文法的句子" << endl;
